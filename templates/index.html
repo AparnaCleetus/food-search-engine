@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Food Search</title>
+	<link rel="icon" href="favicon.jpg" type="image/gif" sizes="16x16">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="headerbar">
+            <center><img src='foodie.jpg' /></center>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+
+                    <div class="with-nav-tabs">
+
+                        <div class="panel-heading">
+                            <div class="search">
+                                <div class="searchPanel">
+                                    <div id="custom-search-input">
+                                        <div class="input-group col-md-12">
+                                            <input id="query" type="text" class="  search-query form-control"
+                                                placeholder="Search" />
+                                            <span class="input-group-btn">
+                                                <button id="searchButton" class="btn btn-danger" type="button">
+                                                    Search
+                                                </button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space"></div>
+                            <div>
+                                <ul class="nav nav-tabs">
+
+                                    <li id="tab2"><a data-toggle="tab">Google</a></li>
+                                    <li id="tab3"><a data-toggle="tab">Bing</a></li>
+									<li id="tab4"><a data-toggle="tab">Our Results</a></li>
+                                    <li class="active" id="tab1"><a data-toggle="tab">Pagerank</a></li>
+                                    <li id="tab1a"  class="dropdown-toggle"><a data-toggle="dropdown" >Clustering</a>
+                                    <ul class="dropdown-menu">
+									<li  id="tab11"><a  data-toggle="tab" id="clusterTab1">Flat Clustering</a></li>
+									
+									
+                                    <li  id="tab12"><a  data-toggle="tab" id="clusterTab2">Hirerchical Clustering</a></li>
+									</ul>
+									</li>
+									
+									 <li id="tab1b  class="dropdown-toggle"><a data-toggle="dropdown" >Query Expansion</a>
+									 <ul class="dropdown-menu">
+                                    <li  id="tab13"><a  data-toggle="tab" id="clusterTab3">Rocchio Algorithm</a>
+									
+                                    <li  id="tab14"><a  data-toggle="tab" id="clusterTab4">Association Clustering </a></li>
+                                    <li id="tab15"><a data-toggle="tab" id="qexpTab">Metric Clustering</a></li>
+									<li id="tab16"><a data-toggle="tab" id="qexpTab2">Scalar Clustering</a></li>
+									</ul></li>
+
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="panel-body hideme">
+                            <div class="tab-content">
+							<div class="tab-pane fade in active" id="tab1default">
+                                    <div class="container">
+                                        <div class="solr" id="web-content"></div>
+                                    </div>
+                                </div>
+                                 <div class="tab-pane fade in " id="tab2default">
+                                    <div class="container">
+                                        <div class="google" id="web-content"></div>
+                                    </div>
+                                </div>
+                               
+                                <div class="tab-pane fade in " id="tab3default">
+                                    <div class="container">
+                                        <div class="bing" id="web-content"></div>
+                                    </div>
+                                </div>
+								
+								
+                                <div class="tab-pane fade in active" id="tab11default">
+                                    <div class="container">
+                                        <div class="hits" id="web-content"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade in active" id="tab12default">
+                                    <div class="container">
+                                        <div class="cluster1" id="web-content"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade in active" id="tab13default">
+                                    <div class="container">
+                                        <div class="cluster2" id="web-content"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade in active" id="tab14default">
+                                    <div class="container">
+                                        <div class="cluster3" id="web-content"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade in active" id="tab15default">
+                                    <div class="container">
+                                        <div class="cluster4" id="web-content"></div>
+                                    </div>
+                                </div>
+                                
+								<div class="tab-pane fade in active" id="tab16default">
+                                    <div class="container">
+                                        <div class="qe1" id="web-content"></div>
+                                    </div>
+                                </div>
+								<div class="tab-pane fade in active" id="tab17default">
+                                    <div class="container">
+                                        <div class="qe2" id="web-content"></div>
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div id="progressMessage" style="display:none; padding:5px; padding-top:100px;">
+        <div id="activityIndicator">&nbsp;</div>
+    </div>
+    <br />
+
+
+
+    <script>
+
+        function showProgressCursor() {
+            $("#progressMessage").show();
+        }
+        function hideProgressCursor() {
+            $("#progressMessage").hide();
+        }
+        $(document).ready(function () {
+            $(document).bind('keypress', function (e) {
+                if (e.keyCode == 13) {
+                    $('#searchButton').trigger('click');
+                }
+            });
+
+            function truncate(n, useWordBoundary) {
+                var isTooLong = this.length > n,
+                    s_ = isTooLong ? this.substr(0, n - 1) : this;
+                s_ = (useWordBoundary && isTooLong) ? s_.substr(0, s_.lastIndexOf(' ')) : s_;
+                return isTooLong ? s_ + '&hellip;' : s_;
+            };
+            $("#clusterTab1").click(function () {
+                if ($('.cluster1').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+              
+                }
+            });
+            $("#clusterTab2").click(function () {
+                if ($('.cluster2').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+                  
+                }
+            });
+            $("#clusterTab3").click(function () {
+                if ($('.cluster3').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+                  
+                }
+            });
+            $("#clusterTab4").click(function () {
+                if ($('.cluster4').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+                 
+                }
+            });
+            $("#qexpTab").click(function () {
+                if ($('.qe1').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+                  
+                }
+            });
+			$("#qexpTab2").click(function () {
+                if ($('.qe2').html().length == 0) {
+                    showProgressCursor();
+                    var queryVal = $('#query').val();
+                  
+                }
+				
+            });
+			
+			$('#tab2').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/google?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderGoogleTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderGoogleTab(googleData) {
+				
+				 $(".google")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in googleData) {
+                        var link = googleData[i].link;
+                        var title = googleData[i].title;
+                        var description = googleData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".google")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+				}
+				
+			$('#tab3').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/bing?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderBingTab(data));
+						
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderBingTab(bingData) {
+				
+				 $(".bing")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in bingData) {
+                        var link = bingData[i].link;
+                        var title = bingData[i].title;
+                        var description = bingData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".bing")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+
+
+			$('#tab4').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/solr?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', rendersolrTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function rendersolrTab(solrData) {
+				
+				 $(".solr")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in solrData) {
+                        var link = solrData[i].link;
+                        var title = solrData[i].title;
+                        var description = solrData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".solr")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+			$('#tab1').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/hits?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderhitsTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderhitsTab(hitsData) {
+				
+				 $(".hits")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in hitsData) {
+                        var link = hitsData[i].link;
+                        var title = hitsData[i].title;
+                        var description = hitsData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".hits")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+			$('#tab11').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/kmeans?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderfcTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderfcTab(fcData) {
+				
+				 $(".cluster1")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in fcData) {
+                        var link = fcData[i].link;
+                        var title = fcData[i].title;
+                        var description = fcData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".cluster1")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+				$('#tab12').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/agglo?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderhcTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderhcTab(hcData) {
+				
+				 $(".cluster2")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in hcData) {
+                        var link = hcData[i].link;
+                        var title = hcData[i].title;
+                        var description = hcData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".cluster2")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+			$('#tab13').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/bing?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderraTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderraTab(raData) {
+				
+				 $(".cluster3")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in raData) {
+                        var link = raData[i].link;
+                        var title = raData[i].title;
+                        var description = raData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".cluster3")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+			$('#tab14').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/bing?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderacTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderacTab(acData) {
+				
+				 $(".cluster4")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in acData) {
+                        var link = acData[i].link;
+                        var title = acData[i].title;
+                        var description = acData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".cluster4")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+			$('#tab15').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/bing?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', rendermcTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function rendermcTab(mcData) {
+				
+				 $(".qe1")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in mcData) {
+                        var link = mcData[i].link;
+                        var title = mcData[i].title;
+                        var description = mcData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".qe1")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+				$('#tab16').click( function() {
+			
+			 var queryVal = $('#query').val();
+			fetch("http://localhost:5000/bing?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+				.then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderscTab(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+			
+			});
+			
+			function renderscTab(scData) {
+				
+				 $(".qe2")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in scData) {
+                        var link = scData[i].link;
+                        var title = scData[i].title;
+                        var description = scData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".qe2")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+			}
+			
+            $("#searchButton").click(function () {
+                showProgressCursor();
+                var queryVal = $('#query').val();
+                $(".solr").html("");
+                $(".google").html("");
+                $(".bing").html("");
+                $(".hits").html("");
+                 $(".cluster1").html("");
+                 $(".cluster2").html("");
+                $(".cluster3").html("");
+                 $(".cluster4").html("");
+                $(".qe1").html("");
+				 $(".qe2").html("");
+                $(".nav-tabs .active").removeClass(
+                    "active");
+                $("#tab1").addClass("active");
+                $(".tab-content .active").removeClass(
+                    "active");
+                $('#tab1default').addClass("active");
+
+                fetch("http://localhost:5000/query?mydata=" + queryVal, {
+                    method: 'POST', // or 'PUT'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify(queryVal),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', renderResponse(data));
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+					
+				
+                function renderResponse(
+                    response) {
+					
+					return;
+
+                    hideProgressCursor();
+                    var jsonData = response;
+                    var solrData, googleData, bingData, hitsData, fcData, hcData, raData, acData, mcData, scData;
+                    var googleData = jsonData['google'];
+                    var bingData = jsonData['bing'];
+                    solrData = jsonData['solr'];
+                    hitsData = jsonData['hits'];
+					fcData = jsonData['hits'];
+					hcData = jsonData['hits'];
+					raData = jsonData['hits'];
+					acData = jsonData['hits'];
+					mcData = jsonData['hits'];
+					scData = jsonData['hits'];
+	  
+                    $(".solr")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in solrData) {
+                        count = count + 1;
+                        var link = solrData[i].id;
+                        var title = solrData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = solrData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".solr")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+					
+					$(".hits")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in hitsData) {
+                        count = count + 1;
+                        var link = hitsData[i].id;
+                        var title = hitsData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = hitsData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".hits")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    } 
+
+                    $(".cluster1")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in fcData) {
+                        count = count + 1;
+                        var link = fcData[i].id;
+                        var title = fcData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = fcData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".cluster1")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".cluster2")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in hcData) {
+                        count = count + 1;
+                        var link = hcData[i].id;
+                        var title = hcData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = hcData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".cluster2")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".cluster3")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in raData) {
+                        count = count + 1;
+                        var link = raData[i].id;
+                        var title = raData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = raData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".cluster3")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".cluster4")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in acData) {
+                        count = count + 1;
+                        var link = acData[i].id;
+                        var title = acData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = acData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".cluster4")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".qe1")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in mcData) {
+                        count = count + 1;
+                        var link = mcData[i].id;
+                        var title = mcData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = mcData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".qe1")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".qe2")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    var count = 0;
+                    for (var i in scData) {
+                        count = count + 1;
+                        var link = scData[i].id;
+                        var title = scData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = scData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><i>" +
+                            truncate.apply(description, [200, true]); +
+                                "</i></small></blockquote>";
+                        $(".qe2")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                        if (count == 15) {
+                            break;
+                        }
+                    }
+
+                    $(".google")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in googleData) {
+                        var link = googleData[i].link;
+                        var title = googleData[i].title;
+                        var description = googleData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".google")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+
+
+
+
+                    $(".bing")
+                        .html(
+                            "");
+                    $(".hideme")
+                        .removeClass(
+                            "hideme");
+                    for (var i in bingData) {
+                        var link = bingData[i].link;
+                        var title = bingData[i].title;
+                        var description = bingData[i].snippet;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            description +
+                            "</cite></small></blockquote>";
+                        $(
+                            ".bing")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    }
+
+                /*    $(".hits").html("");
+                    $(".hideme").removeClass("hideme");
+                    for (var i in hitsData) {
+                        var link = hitsData[i].id;
+                        var title = hitsData[i].title;
+                        if (typeof title == 'undefined') {
+                            title = link;
+                        }
+                        var description = hitsData[i].content;
+                        var dat = "<blockquote> <p><a href='" + link + "'>" +
+                            title +
+                            "</a><br><span class='linkclass'>" + link + "</span></p> <small><cite title='" +
+                            "Source Title'>" +
+                            truncate.apply(description, [200, true]); +
+                                "</cite></small></blockquote>";
+                        $(".hits")
+                            .append(
+                                "" +
+                                dat +
+                                "<br>");
+                    } */
+
+
+                } 
+
+            
+
+        });
+
+
+
+        $(".nav-tabs li").click(
+            function () {
+                $(".nav-tabs .active").removeClass(
+                    "active");
+                $(this).addClass("active");
+                $(".tab-content .active").removeClass(
+                    "active");
+                var name = "#" + this.id + "default";
+                $(name).addClass("active");
+
+                //console.log(this.id);
+            });
+        });
+    </script>
+
+
+
+
+
+</body>
+
+
+
+</html>  
